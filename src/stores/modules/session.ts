@@ -107,13 +107,14 @@ export const useSessionStore = defineStore('session', () => {
   };
 
   // 发送消息后创建新会话
-  const createSessionList = async (data: Omit<CreateSessionDTO, 'id'>) => {
+  const createSessionList = async (data: Omit<CreateSessionDTO, 'id'>, query: any) => {
     if (!userStore.token) {
       router.replace({
         name: 'chatWithId',
         params: {
           id: 'not_login',
         },
+        query,
       });
       return;
     }
@@ -177,6 +178,7 @@ export const useSessionStore = defineStore('session', () => {
       // 1. 先找到被修改会话在 sessionList 中的索引（假设 sessionList 是按服务端排序的完整列表）
       const targetIndex = sessionList.value.findIndex(session => session.id === ids[0]);
       // 2. 计算该会话所在的页码（页大小固定为 pageSize.value）
+      sessionList.value = sessionList.value.filter(session => !ids.includes(<string>session.id));
       const targetPage
         = targetIndex >= 0
           ? Math.floor(targetIndex / pageSize.value) + 1 // 索引从0开始，页码从1开始

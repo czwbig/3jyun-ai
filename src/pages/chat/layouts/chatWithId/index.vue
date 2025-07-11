@@ -1,18 +1,15 @@
 <!-- 每个回话对应的聊天内容 -->
 <script setup lang="ts">
 import type { AnyObject } from 'typescript-api-pro';
+import type { Sender } from 'vue-element-plus-x';
 import type { BubbleProps } from 'vue-element-plus-x/types/Bubble';
 import type { BubbleListInstance } from 'vue-element-plus-x/types/BubbleList';
-import type { FilesCardProps } from 'vue-element-plus-x/types/FilesCard';
+import type { PromptsItemsProps } from 'vue-element-plus-x/types/Prompts';
 import type { ThinkingStatus } from 'vue-element-plus-x/types/Thinking';
 import { useHookFetch } from 'hook-fetch/vue';
-import { Sender } from 'vue-element-plus-x';
 import { useRoute } from 'vue-router';
 import { send } from '@/api';
-import FilesSelect from '@/components/FilesSelect/index.vue';
-import ModelSelect from '@/components/ModelSelect/index.vue';
 import { useChatStore } from '@/stores/modules/chat';
-import { useFilesStore } from '@/stores/modules/files';
 import { useModelStore } from '@/stores/modules/model';
 import { useUserStore } from '@/stores/modules/user';
 
@@ -22,14 +19,12 @@ type MessageItem = BubbleProps & {
   avatar: string;
   thinkingStatus?: ThinkingStatus;
   thinlCollapse?: boolean;
-  reasoning_content?: string;
 };
-
 const route = useRoute();
 const chatStore = useChatStore();
 const modelStore = useModelStore();
-const filesStore = useFilesStore();
 const userStore = useUserStore();
+const { authStr } = route.query;
 
 // 用户头像
 const avatar = computed(() => {
@@ -46,6 +41,7 @@ const { stream, loading: isLoading, cancel } = useHookFetch({
   request: send,
   onError: (err) => {
     console.warn('测试错误拦截', err);
+    isLoading.value = false;
   },
 });
 // 记录进入思考中
@@ -103,7 +99,7 @@ function handleDataChunk(chunk: AnyObject) {
       bubbleItems.value[bubbleItems.value.length - 1].loading = true;
       bubbleItems.value[bubbleItems.value.length - 1].thinlCollapse = true;
       if (bubbleItems.value.length) {
-        bubbleItems.value[bubbleItems.value.length - 1].reasoning_content += reasoningChunk;
+        // bubbleItems.value[bubbleItems.value.length - 1].reasoning_content += reasoningChunk;
       }
     }
 
@@ -125,9 +121,9 @@ function handleDataChunk(chunk: AnyObject) {
         bubbleItems.value[bubbleItems.value.length - 1].loading = true;
         bubbleItems.value[bubbleItems.value.length - 1].thinlCollapse = true;
         if (bubbleItems.value.length) {
-          bubbleItems.value[bubbleItems.value.length - 1].reasoning_content += parsedChunk
-            .replace('<think>', '')
-            .replace('</think>', '');
+          // bubbleItems.value[bubbleItems.value.length - 1].reasoning_content += parsedChunk
+          //   .replace('<think>', '')
+          //   .replace('</think>', '');
         }
       }
       else {
@@ -162,14 +158,19 @@ async function startSSE(chatContent: string) {
 
     // 这里有必要调用一下 BubbleList 组件的滚动到底部 手动触发 自动滚动
     bubbleListRef.value?.scrollToBottom();
-
+    const messages = [{
+      role: 'system' as const,
+      content: JSON.stringify({
+        authStr,
+      }),
+    }].concat(bubbleItems.value
+      .filter((item: any) => item.role === 'user')
+      .map((item: any) => ({
+        role: item.role,
+        content: item.content,
+      })));
     for await (const chunk of stream({
-      messages: bubbleItems.value
-        .filter((item: any) => item.role === 'user')
-        .map((item: any) => ({
-          role: item.role,
-          content: item.content,
-        })),
+      messages,
       sessionId: route.params?.id !== 'not_login' ? String(route.params?.id) : undefined,
       userId: userStore.userInfo?.userId,
       model: modelStore.currentModelInfo.modelName ?? '',
@@ -212,7 +213,6 @@ function addMessage(message: string, isUser: boolean) {
     isMarkdown: !isUser,
     loading: !isUser,
     content: message || '',
-    reasoning_content: '',
     thinkingStatus: 'start',
     thinlCollapse: false,
   };
@@ -224,25 +224,39 @@ function handleChange(payload: { value: boolean; status: ThinkingStatus }) {
   console.log('value', payload.value, 'status', payload.status);
 }
 
-function handleDeleteCard(_item: FilesCardProps, index: number) {
-  filesStore.deleteFileByIndex(index);
+const items = computed<PromptsItemsProps[]>(() => [
+  {
+    key: '1',
+    label: '查看平台设备总数',
+    disabled: isLoading.value,
+  },
+  {
+    key: '2',
+    label: '查看最近两天告警',
+    disabled: isLoading.value,
+  },
+  {
+    key: '3',
+    label: '查看最新5条故障信息',
+    disabled: isLoading.value,
+  },
+  {
+    key: '4',
+    label: '展示用传设备列表',
+    disabled: isLoading.value,
+  },
+]);
+
+function handleItemClick(item: PromptsItemsProps) {
+  console.log('点击了提示集', item);
+  inputValue.value = item.label || '';
+  // 触发发送事件
+  startSSE(item.label || '');
 }
 
-watch(
-  () => filesStore.filesList.length,
-  (val) => {
-    if (val > 0) {
-      nextTick(() => {
-        senderRef.value?.openHeader();
-      });
-    }
-    else {
-      nextTick(() => {
-        senderRef.value?.closeHeader();
-      });
-    }
-  },
-);
+onMounted(() => {
+  senderRef.value?.openHeader?.();
+});
 </script>
 
 <template>
@@ -251,8 +265,22 @@ watch(
       <BubbleList ref="bubbleListRef" :list="bubbleItems" max-height="calc(100vh - 240px)">
         <template #header="{ item }">
           <Thinking
-            v-if="item.reasoning_content" v-model="item.thinlCollapse" :content="item.reasoning_content"
+            v-if="item.reasoning_content" v-model="item.thinlCollapse"
+            :content="item.reasoning_content"
             :status="item.thinkingStatus" class="thinking-chain-warp" @change="handleChange"
+          />
+        </template>
+        <template #bubble="{ item }">
+          <Bubble
+            :key="item.key"
+            :avatar="item.avatar"
+            :avatar-size="item.avatarSize"
+            :role="item.role"
+            :placement="item.placement"
+            :content="item.content"
+            :is-markdown="item.isMarkdown"
+            :loading="item.loading"
+            :typing="item.typing"
           />
         </template>
 
@@ -265,41 +293,16 @@ watch(
         ref="senderRef" v-model="inputValue" class="chat-defaul-sender" :auto-size="{
           maxRows: 6,
           minRows: 2,
-        }" variant="updown" clearable allow-speech :loading="isLoading" @submit="startSSE" @cancel="cancelSSE"
+        }" variant="updown" clearable :loading="isLoading" @submit="startSSE" @cancel="cancelSSE"
       >
         <template #header>
           <div class="sender-header p-12px pt-6px pb-0px">
-            <Attachments :items="filesStore.filesList" :hide-upload="true" @delete-card="handleDeleteCard">
-              <template #prev-button="{ show, onScrollLeft }">
-                <div
-                  v-if="show"
-                  class="prev-next-btn left-8px flex-center w-22px h-22px rounded-8px border-1px border-solid border-[rgba(0,0,0,0.08)] c-[rgba(0,0,0,.4)] hover:bg-#f3f4f6 bg-#fff font-size-10px"
-                  @click="onScrollLeft"
-                >
-                  <el-icon>
-                    <ArrowLeftBold />
-                  </el-icon>
-                </div>
-              </template>
-
-              <template #next-button="{ show, onScrollRight }">
-                <div
-                  v-if="show"
-                  class="prev-next-btn right-8px flex-center w-22px h-22px rounded-8px border-1px border-solid border-[rgba(0,0,0,0.08)] c-[rgba(0,0,0,.4)] hover:bg-#f3f4f6 bg-#fff font-size-10px"
-                  @click="onScrollRight"
-                >
-                  <el-icon>
-                    <ArrowRightBold />
-                  </el-icon>
-                </div>
-              </template>
-            </Attachments>
-          </div>
-        </template>
-        <template #prefix>
-          <div class="flex-1 flex items-center gap-8px flex-none w-fit overflow-hidden">
-            <FilesSelect />
-            <ModelSelect />
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <Prompts
+                :items="items"
+                @item-click="handleItemClick"
+              />
+            </div>
           </div>
         </template>
       </Sender>
@@ -316,32 +319,39 @@ watch(
   width: 100%;
   max-width: 800px;
   height: 100%;
+
   .chat-warp {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     width: 100%;
     height: calc(100vh - 60px);
+
     .thinking-chain-warp {
       margin-bottom: 12px;
     }
   }
+
   :deep() {
     .el-bubble-list {
       padding-top: 24px;
     }
+
     .el-bubble {
       padding: 0 12px;
       padding-bottom: 24px;
     }
+
     .el-typewriter {
       overflow: hidden;
       border-radius: 12px;
     }
+
     .markdown-body {
       background-color: transparent;
     }
   }
+
   .chat-defaul-sender {
     width: 100%;
     margin-bottom: 22px;

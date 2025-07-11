@@ -33,7 +33,6 @@ async function handleSubmit() {
     console.log(res, 'res');
     res.data.token && userStore.setToken(res.data.token);
     res.data.userInfo && userStore.setUserInfo(res.data.userInfo);
-    ElMessage.success('登录成功');
     userStore.closeLoginDialog();
     // 立刻获取回话列表
     await sessionStore.requestSessionList(1, true);

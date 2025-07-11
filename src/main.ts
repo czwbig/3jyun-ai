@@ -6,7 +6,7 @@ import ElementPlusX from 'vue-element-plus-x';
 import App from './App.vue';
 import router from './routers';
 import store from './stores';
-import './styles/index.scss';
+// import './styles/index.scss';
 import 'virtual:uno.css';
 import 'element-plus/dist/index.css';
 // SVG插件配置

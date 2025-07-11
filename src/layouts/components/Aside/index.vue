@@ -149,7 +149,7 @@ function handleMenuCommand(command: string, item: ConversationItem<ChatSessionVo
       <div v-if="!designStore.isCollapse" class="aside-header">
         <div class="flex items-center gap-8px hover:cursor-pointer" @click="handleCreatChat">
           <el-image :src="logo" alt="logo" fit="cover" class="logo-img" />
-          <span class="logo-text max-w-150px text-overflow">Element Plus X</span>
+          <span class="logo-text max-w-150px text-overflow">消防云助手</span>
         </div>
         <Collapse class="ml-auto" />
       </div>

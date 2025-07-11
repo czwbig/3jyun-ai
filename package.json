@@ -20,7 +20,8 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build-dev": "vue-tsc -b && vite build --mode development",
+    "build": "vue-tsc -b && vite build --mode production",
     "preview": "vite preview",
     "prepare": "husky",
     "lint": "eslint .",

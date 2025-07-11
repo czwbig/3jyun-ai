@@ -1,6 +1,10 @@
-import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router';
+import {
+  createWebHashHistory,
+  type NavigationGuardNext,
+  type RouteLocationNormalized
+} from 'vue-router';
 import { useNProgress } from '@vueuse/integrations/useNProgress';
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter } from 'vue-router';
 import { ROUTER_WHITE_LIST } from '@/config';
 import { errorRouter, layoutRouter, staticRouter } from '@/routers/modules/staticRouter';
 import { useUserStore } from '@/stores';
@@ -14,7 +18,7 @@ const { start, done } = useNProgress(0, {
 });
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes: [...layoutRouter, ...staticRouter, ...errorRouter],
   strict: false,
   scrollBehavior: () => ({ left: 0, top: 0 }),
