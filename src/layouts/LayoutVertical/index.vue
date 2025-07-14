@@ -45,7 +45,7 @@ useWindowWidthObserver();
 .layout-container {
   position: relative;
   width: 100%;
-  height: 100vh;
+  height: calc(100vh - 16px);
   overflow: hidden;
   .layout-header {
     padding: 0;
