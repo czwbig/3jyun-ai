@@ -35,7 +35,7 @@ const avatar = computed(() => {
 const inputValue = ref('');
 const senderRef = ref<InstanceType<typeof Sender> | null>(null);
 const bubbleItems = ref<MessageItem[]>([]);
-const validBubbleItems = computed(() => bubbleItems.value.filter(item => item.content && ['assistant', 'user'].includes(item.role)));
+const validBubbleItems = computed(() => bubbleItems.value.filter(item => item.content && ['assistant', 'system', 'user'].includes(item.role)));
 const bubbleListRef = ref<BubbleListInstance | null>(null);
 
 const { stream, loading: isLoading, cancel } = useHookFetch({
@@ -274,7 +274,8 @@ onMounted(() => {
         <template #content="{ item }">
           <!-- chat 内容走 markdown -->
           <XMarkdown
-            v-if="item.content && item.role === 'assistant'" :markdown="item.content"
+            v-if="item.content && ['assistant', 'system'].includes(item.role)"
+            :markdown="item.content"
             class="markdown-body" :themes="{ light: 'github-light', dark: 'github-dark' }"
             default-theme-mode="dark"
           />
