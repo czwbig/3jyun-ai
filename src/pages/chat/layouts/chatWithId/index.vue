@@ -35,6 +35,7 @@ const avatar = computed(() => {
 const inputValue = ref('');
 const senderRef = ref<InstanceType<typeof Sender> | null>(null);
 const bubbleItems = ref<MessageItem[]>([]);
+const validBubbleItems = computed(() => bubbleItems.value.filter(item => item.content && ['assistant', 'user'].includes(item.role)));
 const bubbleListRef = ref<BubbleListInstance | null>(null);
 
 const { stream, loading: isLoading, cancel } = useHookFetch({
@@ -262,7 +263,7 @@ onMounted(() => {
 <template>
   <div class="chat-with-id-container">
     <div class="chat-warp">
-      <BubbleList ref="bubbleListRef" :list="bubbleItems" max-height="calc(100vh - 240px)">
+      <BubbleList ref="bubbleListRef" :list="validBubbleItems" max-height="calc(100vh - 240px)">
         <template #header="{ item }">
           <Thinking
             v-if="item.reasoning_content" v-model="item.thinlCollapse"
@@ -270,23 +271,18 @@ onMounted(() => {
             :status="item.thinkingStatus" class="thinking-chain-warp" @change="handleChange"
           />
         </template>
-        <template #bubble="{ item }">
-          <Bubble
-            :key="item.key"
-            :avatar="item.avatar"
-            :avatar-size="item.avatarSize"
-            :role="item.role"
-            :placement="item.placement"
-            :content="item.content"
-            :is-markdown="item.isMarkdown"
-            :loading="item.loading"
-            :typing="item.typing"
+        <template #content="{ item }">
+          <!-- chat 内容走 markdown -->
+          <XMarkdown
+            v-if="item.content && item.role === 'assistant'" :markdown="item.content"
+            class="markdown-body" :themes="{ light: 'github-light', dark: 'github-dark' }"
+            default-theme-mode="dark"
           />
+          <!-- user 内容 纯文本 -->
+          <div v-if="item.content && item.role === 'user'" class="user-content">
+            {{ item.content }}
+          </div>
         </template>
-
-        <!-- <template #content="{ item }">
-          <XMarkdown v-if="item.content" :markdown="item.content" class="markdown-body" />
-        </template> -->
       </BubbleList>
 
       <Sender
@@ -347,8 +343,22 @@ onMounted(() => {
       border-radius: 12px;
     }
 
+    .user-content {
+      // 换行
+      white-space: pre-wrap;
+    }
+
     .markdown-body {
       background-color: transparent;
+    }
+
+    .markdown-elxLanguage-header-div {
+      top: -25px !important;
+    }
+
+    // xmarkdown 样式
+    .elx-xmarkdown-container {
+      padding: 8px 4px;
     }
   }
 
