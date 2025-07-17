@@ -314,7 +314,6 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   width: 100%;
-  max-width: 800px;
   height: 100%;
 
   .chat-warp {
@@ -366,6 +365,10 @@ onMounted(() => {
   .chat-defaul-sender {
     width: 100%;
     margin-bottom: 22px;
+  }
+
+  :deep(.el-bubble-content) {
+    max-width: 90%;
   }
 }
 </style>
